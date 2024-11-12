@@ -1,0 +1,180 @@
+{
+  "$type": "scenario",
+  "Client": "SampleProvider",
+  "ExplicitContent": true,
+  "ChatFlow": 0,
+  "ChatStyle": 1,
+  "Template": "{{ scenario_chars.main }} and {{ user }} are testing together a API Integration for Voxta. {{ scenario_chars.main }} can now interact with this API and will assist {{ user }} in any way to test and experiment with the new software. The Integration that they are testing together is called Noxy-RED\n\nWhat we can test is the action inference, meaninig {{ user }} can call out 5 different actions that will give automatic feedback out from Noxy-RED via Message back into the chat. Those Messages that come after a generic action trigger has been send back in from of an Event, a Secret, a Note or an Instruction. {{ user }} can also reset the Actions again, because each time an Action is triggered, it will be flagged and disabled, so one action can not repeat itself unless the system is reset.\n\nAn Event is a narrated event, which will trigger a response from {{ char }}\n\nA Secret is hidden note only visible to {{ char }}, {{ user }} can see it only if he uses the Inspect function of the Chat.\n\nA Note is a Silent Information visible to everyone.\n\nAn Instruction is a Information only for the {{ user }}\n\nanother thing {{ scenario_chars.main }} can do is play her favorite music track for {{ user }} which would be Dusty Springfield cover of \u0022Spooky\u0022. a instrumental song originally performed by Mike Sharpe in 1967",
+  "Messages": "{{ char }}: Welcome!",
+  "MemoryBooks": [],
+  "Roles": [
+    {
+      "Name": "main",
+      "Description": "The main character",
+      "DefaultCharacterId": "bab2d437-d64f-fa0c-2955-0eb1d5b22972",
+      "EnabledOnStart": true
+    }
+  ],
+  "Events": [
+    {
+      "EvaluateNextEvent": false,
+      "MinMessagesCount": 0,
+      "MaxMessagesCount": 1,
+      "Name": "bootstrap",
+      "Timing": 5,
+      "CancelReply": true,
+      "Arguments": [],
+      "Disabled": false,
+      "FinalLayer": false,
+      "Once": true,
+      "Effect": {
+        "Script": "import { chat } from \u0022@voxta\u0022;\n\nexport function trigger(e) {\n    chat.appTrigger(\u0027generic006\u0027);\n}",
+        "MaxSentences": 0,
+        "MaxTokens": 0
+      }
+    }
+  ],
+  "Creator": "Roger",
+  "SharedScripts": [],
+  "Actions": [
+    {
+      "Name": "reset_all_flags",
+      "Timing": 0,
+      "Description": "after {{user}} said he wants to reset all flags, using the generic001 as a trigger",
+      "ShortDescription": "slow strokes",
+      "Arguments": [],
+      "Disabled": false,
+      "FinalLayer": false,
+      "Once": false,
+      "Effect": {
+        "SetFlags": [
+          "!second_action",
+          "!fifth_action",
+          "!forth_action",
+          "!third_action"
+        ],
+        "Script": "import { chat } from \u0022@voxta\u0022;\n\nexport function trigger(e) {\n  chat.appTrigger(\u0027generic001\u0027);\n}",
+        "MaxSentences": 0,
+        "MaxTokens": 0
+      }
+    },
+    {
+      "Name": "second_action",
+      "Timing": 0,
+      "Description": "after {{user}} said he wants to test the second action",
+      "Arguments": [],
+      "Disabled": false,
+      "FinalLayer": false,
+      "Once": false,
+      "FlagsFilter": "!second_action",
+      "Effect": {
+        "Script": "import { chat } from \u0022@voxta\u0022;\n\nexport function trigger(e) {\n  chat.appTrigger(\u0027generic002\u0027);\n  chat.setFlags(\u0027second_action\u0027);\n}",
+        "MaxSentences": 0,
+        "MaxTokens": 0
+      }
+    },
+    {
+      "Name": "third_action",
+      "Timing": 0,
+      "Description": "after {{user}} said he wants to test the third action",
+      "Arguments": [],
+      "Disabled": false,
+      "FinalLayer": false,
+      "Once": false,
+      "FlagsFilter": "!third_action",
+      "Effect": {
+        "Script": "import { chat } from \u0022@voxta\u0022;\n\nexport function trigger(e) {\n  chat.appTrigger(\u0027generic003\u0027);\n  chat.setFlags(\u0027third_action\u0027);\n}",
+        "MaxSentences": 0,
+        "MaxTokens": 0
+      }
+    },
+    {
+      "Name": "forth_action",
+      "Timing": 0,
+      "Description": "after {{user}} said he wants to test the forth action",
+      "Arguments": [],
+      "Disabled": false,
+      "FinalLayer": false,
+      "Once": false,
+      "FlagsFilter": "!forth_action",
+      "Effect": {
+        "Script": "import { chat } from \u0022@voxta\u0022;\n\nexport function trigger(e) {\n  chat.appTrigger(\u0027generic004\u0027);\n  chat.setFlags(\u0027forth_action\u0027);\n}",
+        "MaxSentences": 0,
+        "MaxTokens": 0
+      }
+    },
+    {
+      "Name": "fifth_action",
+      "Timing": 0,
+      "Description": "after {{user}} said he wants to test the fifth action",
+      "Arguments": [],
+      "Disabled": false,
+      "FinalLayer": false,
+      "Once": false,
+      "FlagsFilter": "!fifth_action",
+      "Effect": {
+        "Script": "import { chat } from \u0022@voxta\u0022;\n\nexport function trigger(e) {\n  chat.appTrigger(\u0027generic005\u0027);\n  chat.setFlags(\u0027fifth_action\u0027);\n}",
+        "MaxSentences": 0,
+        "MaxTokens": 0
+      }
+    },
+    {
+      "Name": "play_some_music",
+      "Timing": 0,
+      "Description": "after {{user}} said he wants to hear or play some music",
+      "Arguments": [],
+      "Disabled": false,
+      "FinalLayer": false,
+      "Once": false,
+      "FlagsFilter": "!music",
+      "Effect": {
+        "SetFlags": [
+          "music"
+        ],
+        "Script": "import { chat } from \u0022@voxta\u0022;\n\nexport function trigger(e) {\n  chat.appTrigger(\u0027generic007\u0027);\n}",
+        "MaxSentences": 0,
+        "MaxTokens": 0
+      }
+    },
+    {
+      "Name": "stop_music",
+      "Timing": 0,
+      "Description": "after {{user}} said he wants to stop the music or sound",
+      "Arguments": [],
+      "Disabled": false,
+      "FinalLayer": false,
+      "Once": false,
+      "Effect": {
+        "SetFlags": [
+          "!music"
+        ],
+        "Script": "import { chat } from \u0022@voxta\u0022;\n\nexport function trigger(e) {\n  chat.appTrigger(\u0027generic008\u0027);\n}",
+        "MaxSentences": 0,
+        "MaxTokens": 0
+      }
+    },
+    {
+      "Name": "keep_talking",
+      "Timing": 2,
+      "Description": "when {{char}} wants to keep talking to {{user}} without something happening",
+      "ShortDescription": "{{char}} keeps talking to {{user}}",
+      "Arguments": [],
+      "Disabled": false,
+      "FinalLayer": false,
+      "Once": false,
+      "Effect": {
+        "MaxSentences": 0,
+        "MaxTokens": 0
+      }
+    }
+  ],
+  "Contexts": [],
+  "Id": "e16e496a-1e5d-9280-7c45-3204dbb34801",
+  "UserId": "00000000-0000-0000-0000-000000000000",
+  "Name": "Example Scenario for Noxy-RED",
+  "AppControlled": false,
+  "Locked": false,
+  "Version": "1.0.0",
+  "DateCreated": "2024-10-03T18:40:40.862+00:00",
+  "DateModified": "2024-10-27T08:18:48.933+00:00"
+}

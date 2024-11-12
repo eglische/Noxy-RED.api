@@ -1,0 +1,88 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Voxta.Model</name>
+    </assembly>
+    <members>
+        <member name="F:Voxta.Model.Shared.AudioInputClientCapabilities.None">
+            <summary>
+            Requires recording through the server recording services
+            </summary>
+        </member>
+        <member name="F:Voxta.Model.Shared.AudioInputClientCapabilities.WebSocketStream">
+            <summary>
+            Upload the audio wav frames from the websocket connection
+            </summary>
+        </member>
+        <member name="F:Voxta.Model.Shared.AudioInputClientCapabilities.Disabled">
+            <summary>
+            Prevents any audio input
+            </summary>
+        </member>
+        <member name="F:Voxta.Model.Shared.AudioOutputClientCapabilities.None">
+            <summary>
+            Requires playback through the Audio Output Service
+            </summary>
+        </member>
+        <member name="F:Voxta.Model.Shared.AudioOutputClientCapabilities.Url">
+            <summary>
+            Download the audio file from the URL
+            </summary>
+        </member>
+        <member name="F:Voxta.Model.Shared.AudioOutputClientCapabilities.LocalFile">
+            <summary>
+            Requires an AudioPath
+            </summary>
+        </member>
+        <member name="F:Voxta.Model.Shared.AudioOutputClientCapabilities.Disabled">
+            <summary>
+            Prevents any audio output
+            </summary>
+        </member>
+        <member name="F:Voxta.Model.Shared.VisionCaptureClientCapabilities.None">
+            <summary>
+            Requires vision through the Vision Capture Service
+            </summary>
+        </member>
+        <member name="F:Voxta.Model.Shared.VisionCaptureClientCapabilities.Disabled">
+            <summary>
+            Prevents any audio output
+            </summary>
+        </member>
+        <member name="M:Voxta.Model.Shared.SemVerVersionExtensions.ToSemVerVersion(System.String)">
+            <summary>
+            Example: "1.0.0"
+            </summary>
+        </member>
+        <member name="M:Voxta.Model.Shared.VersionedGuidExtensions.ToVersionedGuid(System.String)">
+            <summary>
+            Example: "00000000-0000-0000-0000-000000000000@1.0.0"
+            </summary>
+        </member>
+        <member name="T:Voxta.Model.VoxtaUserRoles">
+            <summary>
+            All roles MUST be uppercase (Asp.NET Core Identity requirement)
+            </summary>
+        </member>
+        <member name="P:Voxta.Model.WebsocketMessages.ClientMessages.ClientSendMessage.DoContinue">
+            <summary>
+            Allows events, chat flow and replies to be processed
+            </summary>
+        </member>
+        <member name="P:Voxta.Model.WebsocketMessages.ClientMessages.ClientSendMessage.DoUserActionInference">
+            <summary>
+            Unused, to delete
+            </summary>
+        </member>
+        <member name="P:Voxta.Model.WebsocketMessages.ClientMessages.ClientSendMessage.DoReply">
+            <summary>
+            Whether the character can speak, still runs action inference
+            </summary>
+        </member>
+        <member name="P:Voxta.Model.WebsocketMessages.ClientMessages.ClientSendMessage.DoCharacterActionInference">
+            <summary>
+            Whether the character should do the action inference or only speek
+            </summary>
+        </member>
+    </members>
+</doc>

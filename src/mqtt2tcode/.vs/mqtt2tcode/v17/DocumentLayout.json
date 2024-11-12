@@ -1,0 +1,115 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\manager\\source\\repos\\mqtt2tcode\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{11E96D45-8DF6-4E79-925B-0C8BB5B7DE82}|mqtt2tcode\\mqtt2tcode.csproj|c:\\users\\manager\\source\\repos\\mqtt2tcode\\mqtt2tcode\\serialportdetector.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{11E96D45-8DF6-4E79-925B-0C8BB5B7DE82}|mqtt2tcode\\mqtt2tcode.csproj|solutionrelative:mqtt2tcode\\serialportdetector.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{11E96D45-8DF6-4E79-925B-0C8BB5B7DE82}|mqtt2tcode\\mqtt2tcode.csproj|C:\\Users\\manager\\source\\repos\\mqtt2tcode\\mqtt2tcode\\serialportinspector.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{11E96D45-8DF6-4E79-925B-0C8BB5B7DE82}|mqtt2tcode\\mqtt2tcode.csproj|solutionrelative:mqtt2tcode\\serialportinspector.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{11E96D45-8DF6-4E79-925B-0C8BB5B7DE82}|mqtt2tcode\\mqtt2tcode.csproj|C:\\Users\\manager\\source\\repos\\mqtt2tcode\\mqtt2tcode\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{11E96D45-8DF6-4E79-925B-0C8BB5B7DE82}|mqtt2tcode\\mqtt2tcode.csproj|solutionrelative:mqtt2tcode\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{00000000-0000-0000-0000-000000000000}|\u003CSolution\u003E|mqtt2tcode||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{11E96D45-8DF6-4E79-925B-0C8BB5B7DE82}|mqtt2tcode\\mqtt2tcode.csproj|C:\\Users\\manager\\source\\repos\\mqtt2tcode\\mqtt2tcode\\config.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{11E96D45-8DF6-4E79-925B-0C8BB5B7DE82}|mqtt2tcode\\mqtt2tcode.csproj|solutionrelative:mqtt2tcode\\config.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{11E96D45-8DF6-4E79-925B-0C8BB5B7DE82}|mqtt2tcode\\mqtt2tcode.csproj|C:\\Users\\manager\\source\\repos\\mqtt2tcode\\mqtt2tcode\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{11E96D45-8DF6-4E79-925B-0C8BB5B7DE82}|mqtt2tcode\\mqtt2tcode.csproj|solutionrelative:mqtt2tcode\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 3,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "mqtt2tcode",
+              "DocumentMoniker": "C:\\Users\\manager\\source\\repos\\mqtt2tcode\\mqtt2tcode\\mqtt2tcode.csproj",
+              "RelativeDocumentMoniker": "mqtt2tcode\\mqtt2tcode.csproj",
+              "ToolTip": "C:\\Users\\manager\\source\\repos\\mqtt2tcode\\mqtt2tcode\\mqtt2tcode.csproj",
+              "RelativeToolTip": "mqtt2tcode\\mqtt2tcode.csproj",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2024-10-07T14:00:53.415Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "C:\\Users\\manager\\source\\repos\\mqtt2tcode\\mqtt2tcode\\appsettings.json",
+              "RelativeDocumentMoniker": "mqtt2tcode\\appsettings.json",
+              "ToolTip": "C:\\Users\\manager\\source\\repos\\mqtt2tcode\\mqtt2tcode\\appsettings.json",
+              "RelativeToolTip": "mqtt2tcode\\appsettings.json",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAgwAIAAAAfAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2024-10-07T09:52:18.116Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "SerialPortInspector.cs",
+              "DocumentMoniker": "C:\\Users\\manager\\source\\repos\\mqtt2tcode\\mqtt2tcode\\SerialPortInspector.cs",
+              "RelativeDocumentMoniker": "mqtt2tcode\\SerialPortInspector.cs",
+              "ToolTip": "C:\\Users\\manager\\source\\repos\\mqtt2tcode\\mqtt2tcode\\SerialPortInspector.cs",
+              "RelativeToolTip": "mqtt2tcode\\SerialPortInspector.cs",
+              "ViewState": "AQIAAJAAAAAAAAAAAAAiwB8AAAAtAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-10-06T21:44:54.567Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "SerialPortDetector.cs",
+              "DocumentMoniker": "C:\\Users\\manager\\source\\repos\\mqtt2tcode\\mqtt2tcode\\SerialPortDetector.cs",
+              "RelativeDocumentMoniker": "mqtt2tcode\\SerialPortDetector.cs",
+              "ToolTip": "C:\\Users\\manager\\source\\repos\\mqtt2tcode\\mqtt2tcode\\SerialPortDetector.cs",
+              "RelativeToolTip": "mqtt2tcode\\SerialPortDetector.cs",
+              "ViewState": "AQIAAL4AAAAAAAAAAAAkwM8AAAAAAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-10-06T21:30:41.168Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Config.cs",
+              "DocumentMoniker": "C:\\Users\\manager\\source\\repos\\mqtt2tcode\\mqtt2tcode\\Config.cs",
+              "RelativeDocumentMoniker": "mqtt2tcode\\Config.cs",
+              "ToolTip": "C:\\Users\\manager\\source\\repos\\mqtt2tcode\\mqtt2tcode\\Config.cs",
+              "RelativeToolTip": "mqtt2tcode\\Config.cs",
+              "ViewState": "AQIAAAIAAAAAAAAAAAAAAA8AAAAIAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-10-06T21:30:41.016Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\manager\\source\\repos\\mqtt2tcode\\mqtt2tcode\\Program.cs",
+              "RelativeDocumentMoniker": "mqtt2tcode\\Program.cs",
+              "ToolTip": "C:\\Users\\manager\\source\\repos\\mqtt2tcode\\mqtt2tcode\\Program.cs",
+              "RelativeToolTip": "mqtt2tcode\\Program.cs",
+              "ViewState": "AQIAAAEAAAAAAAAAAAAAAA4AAAAAAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-10-06T20:50:24.865Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
