@@ -22,6 +22,7 @@ namespace Voxta.SampleProviderApp.Providers
         private readonly ILogger<AudioProvider> _logger;
         private readonly ConcurrentDictionary<string, WaveOutEvent> _playingAudio = new ConcurrentDictionary<string, WaveOutEvent>();
         private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+        private readonly IConfiguration _configuration;
         private bool _disposed = false;
 
         // The audio directory, now relative to where the executable is run
@@ -33,13 +34,26 @@ namespace Voxta.SampleProviderApp.Providers
         ) : base(null, logger) // Pass null as no session is needed for this
         {
             _logger = logger;
-            var mqttOptions = configuration.GetSection("MQTT").Get<MqttOptions>();
+            _configuration = configuration;
+
+            // Load MQTT settings from configuration
+            var mqttOptions = _configuration.GetSection("MQTT").Get<MqttOptions>();
+
+            if (mqttOptions == null || string.IsNullOrEmpty(mqttOptions.BrokerAddress))
+            {
+                throw new ArgumentNullException(nameof(mqttOptions.BrokerAddress), "BrokerAddress is missing in the configuration.");
+            }
+
+            mqttOptions.Port = mqttOptions.Port == 0 ? 1883 : mqttOptions.Port;
+            mqttOptions.QoS = mqttOptions.QoS == 0 ? 1 : mqttOptions.QoS;
+
             _mqttClient = new MqttFactory().CreateMqttClient();
-            _soundEffectTopic = mqttOptions.SoundEffectTopic;
+            _soundEffectTopic = mqttOptions.SoundEffectTopic ?? "/sound/effects";
             _mqttQoS = (MqttQualityOfServiceLevel)Enum.ToObject(typeof(MqttQualityOfServiceLevel), mqttOptions.QoS);
 
-            _logger.LogInformation("AudioProvider initialized with SoundEffectTopic: {SoundEffectTopic} and QoS: {QoS}",
-                _soundEffectTopic, _mqttQoS);
+            _logger.LogInformation(
+                "AudioProvider initialized with BrokerAddress: {BrokerAddress}, Port: {Port}, SoundEffectTopic: {SoundEffectTopic}, and QoS: {QoS}",
+                mqttOptions.BrokerAddress, mqttOptions.Port, _soundEffectTopic, _mqttQoS);
 
             // Use a relative path from the directory where the executable is running
             _audioDirectory = Path.Combine(AppContext.BaseDirectory, "audio", "presets");
@@ -72,7 +86,6 @@ namespace Voxta.SampleProviderApp.Providers
             await RetryWithBackoffAsync(ConnectAndSubscribeAsync, _cancellationTokenSource.Token);
         }
 
-        // Retry logic with exponential backoff
         private async Task RetryWithBackoffAsync(Func<Task> action, CancellationToken cancellationToken)
         {
             const int maxRetries = 5;
@@ -97,7 +110,6 @@ namespace Voxta.SampleProviderApp.Providers
                         throw;  // Exit if retries exceed max limit
                     }
 
-                    // Exponential backoff logic
                     int delay = Math.Min(initialDelaySeconds * (int)Math.Pow(2, retryCount), maxDelaySeconds);
                     _logger.LogWarning($"Retrying MQTT connection in {delay} seconds (attempt {retryCount}/{maxRetries})...");
                     await Task.Delay(TimeSpan.FromSeconds(delay), cancellationToken);
@@ -107,23 +119,36 @@ namespace Voxta.SampleProviderApp.Providers
 
         private async Task ConnectAndSubscribeAsync()
         {
+            var mqttOptions = _configuration.GetSection("MQTT").Get<MqttOptions>() ?? new MqttOptions
+            {
+                BrokerAddress = "127.0.0.1",
+                Port = 1883,
+                SoundEffectTopic = "/sound/effects",
+                QoS = 1
+            };
+
+            if (string.IsNullOrEmpty(mqttOptions.BrokerAddress))
+            {
+                throw new ArgumentNullException(nameof(mqttOptions.BrokerAddress), "BrokerAddress cannot be null or empty.");
+            }
+
             var options = new MqttClientOptionsBuilder()
-                .WithTcpServer("127.0.0.1", 1883)
+                .WithTcpServer(mqttOptions.BrokerAddress, mqttOptions.Port)
                 .WithCleanSession()
                 .Build();
 
-            _logger.LogInformation("Connecting to MQTT broker...");
+            _logger.LogInformation("Connecting to MQTT broker at {BrokerAddress}:{Port}", mqttOptions.BrokerAddress, mqttOptions.Port);
+
             await _mqttClient.ConnectAsync(options, _cancellationTokenSource.Token);
+
             _logger.LogInformation("Connected to MQTT broker.");
 
-            // Subscribe to the sound effect topic
-            await _mqttClient.SubscribeAsync(_soundEffectTopic, _mqttQoS);
-            _logger.LogInformation("Subscribed to MQTT topic: {SoundEffectTopic}", _soundEffectTopic);
+            await _mqttClient.SubscribeAsync(mqttOptions.SoundEffectTopic, (MqttQualityOfServiceLevel)mqttOptions.QoS);
 
-            // Handle incoming MQTT messages
+            _logger.LogInformation("Subscribed to MQTT topic: {SoundEffectTopic}", mqttOptions.SoundEffectTopic);
+
             _mqttClient.ApplicationMessageReceivedAsync += OnMqttMessageReceivedAsync;
         }
-
         private async Task OnMqttMessageReceivedAsync(MqttApplicationMessageReceivedEventArgs e)
         {
             var topic = e.ApplicationMessage.Topic;
@@ -157,16 +182,13 @@ namespace Voxta.SampleProviderApp.Providers
 
         private void PlayAudio(string filePrefix)
         {
-            // Look for any .wav file that starts with the given prefix (e.g., p_500)
             var matchingFiles = Directory.GetFiles(_audioDirectory, $"{filePrefix}*.wav");
 
             if (matchingFiles.Length > 0)
             {
-                // If a match is found, play the first file that matches the pattern
                 var audioFile = matchingFiles.First();
                 _logger.LogInformation("Playing audio file: {AudioFile}", audioFile);
 
-                // Use NAudio to play the audio file
                 var outputDevice = new WaveOutEvent();
                 var audioReader = new AudioFileReader(audioFile);
 
@@ -177,7 +199,6 @@ namespace Voxta.SampleProviderApp.Providers
 
                 outputDevice.PlaybackStopped += (sender, args) =>
                 {
-                    // Clean up after the audio finishes playing
                     _playingAudio.TryRemove(filePrefix, out _);
                     outputDevice.Dispose();
                     audioReader.Dispose();
@@ -195,7 +216,7 @@ namespace Voxta.SampleProviderApp.Providers
             if (_playingAudio.TryGetValue(filePrefix, out var outputDevice))
             {
                 _logger.LogInformation("Stopping audio file: {FilePrefix}", filePrefix);
-                outputDevice.Stop(); // Stop the audio playback
+                outputDevice.Stop();
             }
             else
             {
@@ -209,10 +230,9 @@ namespace Voxta.SampleProviderApp.Providers
             {
                 _logger.LogInformation("Fading out audio file: {FilePrefix}", filePrefix);
 
-                var fadeDuration = TimeSpan.FromSeconds(2); // Define a fade duration
+                var fadeDuration = TimeSpan.FromSeconds(2);
                 var audioReader = (AudioFileReader)outputDevice.GetType().GetProperty("WaveProvider").GetValue(outputDevice);
 
-                // Perform fading logic (a basic linear fade)
                 Task.Run(() =>
                 {
                     float initialVolume = audioReader.Volume;
@@ -221,7 +241,7 @@ namespace Voxta.SampleProviderApp.Providers
                         audioReader.Volume = v;
                         Thread.Sleep((int)(fadeDuration.TotalMilliseconds / 100));
                     }
-                    outputDevice.Stop(); // Stop the audio after fade
+                    outputDevice.Stop();
                 });
             }
             else
