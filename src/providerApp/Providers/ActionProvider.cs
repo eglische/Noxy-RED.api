@@ -19,6 +19,8 @@ namespace Voxta.SampleProviderApp.Providers
         private readonly MqttQualityOfServiceLevel _mqttQoS;
         private readonly ILogger<ActionProvider> _logger;
         private readonly string _mqttInputTopic;
+        private readonly string _brokerAddress;
+        private readonly int _port;
 
         // ConcurrentDictionary to track processed messages
         private readonly ConcurrentDictionary<string, bool> _processedMessages = new ConcurrentDictionary<string, bool>();
@@ -38,10 +40,12 @@ namespace Voxta.SampleProviderApp.Providers
             _mqttClient = new MqttFactory().CreateMqttClient();
             _triggerTopic = mqttOptions.TriggerTopic;
             _mqttInputTopic = mqttOptions.TriggerTopic;
+            _brokerAddress = mqttOptions.BrokerAddress;
+            _port = mqttOptions.Port;
             _mqttQoS = (MqttQualityOfServiceLevel)Enum.ToObject(typeof(MqttQualityOfServiceLevel), mqttOptions.QoS);
 
-            _logger.LogInformation("ActionProvider initialized with TriggerTopic: {TriggerTopic} and QoS: {QoS}",
-                _triggerTopic, _mqttQoS);
+            _logger.LogInformation("ActionProvider initialized with BrokerAddress: {BrokerAddress}, Port: {Port}, TriggerTopic: {TriggerTopic} and QoS: {QoS}",
+                _brokerAddress, _port, _triggerTopic, _mqttQoS);
         }
 
         protected override async Task OnStartAsync()
@@ -87,11 +91,11 @@ namespace Voxta.SampleProviderApp.Providers
         private async Task ConnectAndSubscribeAsync()
         {
             var options = new MqttClientOptionsBuilder()
-                .WithTcpServer("127.0.0.1", 1883)
+                .WithTcpServer(_brokerAddress, _port)
                 .WithCleanSession()
                 .Build();
 
-            _logger.LogInformation("Attempting to connect to MQTT broker at 127.0.0.1:1883");
+            _logger.LogInformation("Attempting to connect to MQTT broker at {BrokerAddress}:{Port}", _brokerAddress, _port);
             await _mqttClient.ConnectAsync(options, _cancellationTokenSource.Token);
             _logger.LogInformation("Connected to MQTT broker.");
 
@@ -103,17 +107,6 @@ namespace Voxta.SampleProviderApp.Providers
             HandleMessage<ServerActionAppTriggerMessage>(message =>
             {
                 _logger.LogInformation("Received trigger {TriggerName} from chat", message.Name);
-
-                // Check if the trigger name has already been processed
-                // if (_processedMessages.ContainsKey(message.Name))
-                // {
-                //     _logger.LogWarning("Trigger {TriggerName} has already been processed. Ignoring duplicate.", message.Name);
-                //     return; // Ignore duplicate triggers
-                // }
-
-                // Add the trigger name to the processed messages
-                // _processedMessages.TryAdd(message.Name, true);
-
 
                 // Log and process the trigger
                 _logger.LogInformation("Processing trigger {TriggerName} for MQTT sending.", message.Name);
