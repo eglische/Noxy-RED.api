@@ -22,7 +22,7 @@ namespace Voxta.SampleProviderApp.Providers
     {
         public string BrokerAddress { get; set; } = "127.0.0.1"; // Default broker address
         public int Port { get; set; } = 1883; // Default port
-        public int QoS { get; set; } = 1; // Default QoS level
+        public int QoS { get; set; } = 2; // Default QoS level
     }
 
     // The main provider class for auto-reply functionality with MQTT integration

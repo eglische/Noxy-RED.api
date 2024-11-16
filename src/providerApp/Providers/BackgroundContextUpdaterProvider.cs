@@ -19,6 +19,8 @@ public class BackgroundContextUpdaterProvider : ProviderBase
     private readonly string _messageTopic;
     private readonly MqttQualityOfServiceLevel _mqttQoS;
     private readonly ILogger<BackgroundContextUpdaterProvider> _logger;
+    private readonly string _brokerAddress;
+    private readonly int _port;
     private bool _chatEnabled = false;
     private bool _subscribed = false;
 
@@ -36,10 +38,12 @@ public class BackgroundContextUpdaterProvider : ProviderBase
         _mqttClient = new MqttFactory().CreateMqttClient();
         _chatTopic = mqttOptions.ChatTopic;
         _messageTopic = mqttOptions.MessageTopic;
+        _brokerAddress = mqttOptions.BrokerAddress;
+        _port = mqttOptions.Port;
         _mqttQoS = (MqttQualityOfServiceLevel)Enum.ToObject(typeof(MqttQualityOfServiceLevel), mqttOptions.QoS);
 
-        _logger.LogInformation("BackgroundContextUpdaterProvider initialized with ChatTopic: {ChatTopic}, MessageTopic: {MessageTopic}, and QoS: {QoS}",
-            _chatTopic, _messageTopic, _mqttQoS);
+        _logger.LogInformation("BackgroundContextUpdaterProvider initialized with BrokerAddress: {BrokerAddress}, Port: {Port}, ChatTopic: {ChatTopic}, MessageTopic: {MessageTopic}, and QoS: {QoS}",
+            _brokerAddress, _port, _chatTopic, _messageTopic, _mqttQoS);
 
         // Ensure ApplicationMessageReceivedAsync is attached only once
         _mqttClient.ApplicationMessageReceivedAsync -= OnMqttMessageReceivedAsync;
@@ -51,13 +55,13 @@ public class BackgroundContextUpdaterProvider : ProviderBase
         await base.OnStartAsync();
 
         var options = new MqttClientOptionsBuilder()
-            .WithTcpServer("127.0.0.1", 1883)
+            .WithTcpServer(_brokerAddress, _port)
             .WithCleanSession(false) // Preserve session state to prevent redelivery
             .Build();
 
         try
         {
-            _logger.LogInformation("Connecting to MQTT broker at {BrokerAddress}:{Port}", "127.0.0.1", 1883);
+            _logger.LogInformation("Connecting to MQTT broker at {BrokerAddress}:{Port}", _brokerAddress, _port);
             await _mqttClient.ConnectAsync(options, CancellationToken.None);
 
             if (!_subscribed)

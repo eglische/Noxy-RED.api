@@ -3,12 +3,16 @@ using Microsoft.Extensions.Logging;
 using MQTTnet;
 using MQTTnet.Client;
 using MQTTnet.Protocol;
-using Voxta.Model.WebsocketMessages.ServerMessages;
-using Voxta.Providers.Host;
 using System;
 using System.Collections.Concurrent;
+using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Voxta.Model.Shared;
+using Voxta.Model.WebsocketMessages.ClientMessages;
+using Voxta.Model.WebsocketMessages.ServerMessages;
+using Voxta.Providers.Host;
 
 namespace Voxta.SampleProviderApp.Providers
 {
@@ -16,15 +20,14 @@ namespace Voxta.SampleProviderApp.Providers
     {
         private readonly IMqttClient _mqttClient;
         private readonly string _triggerTopic;
+        private readonly string _actionTopic;
         private readonly MqttQualityOfServiceLevel _mqttQoS;
         private readonly ILogger<ActionProvider> _logger;
-        private readonly string _mqttInputTopic;
+        private readonly string _brokerAddress;
+        private readonly int _port;
 
-        // ConcurrentDictionary to track processed messages
-        private readonly ConcurrentDictionary<string, bool> _processedMessages = new ConcurrentDictionary<string, bool>();
-
-        // Cancellation token for managing task cancellation
-        private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+        private readonly ConcurrentDictionary<string, FunctionDefinition> _registeredActions = new();
+        private readonly CancellationTokenSource _cancellationTokenSource = new();
         private bool _disposed = false;
 
         public ActionProvider(
@@ -36,21 +39,111 @@ namespace Voxta.SampleProviderApp.Providers
             _logger = logger;
             var mqttOptions = configuration.GetSection("MQTT").Get<ActionMqttOptions>();
             _mqttClient = new MqttFactory().CreateMqttClient();
-            _triggerTopic = mqttOptions.TriggerTopic;
-            _mqttInputTopic = mqttOptions.TriggerTopic;
+            _triggerTopic = mqttOptions.TriggerTopic; // Topic for outgoing triggers
+            _actionTopic = mqttOptions.ActionTopic; // Topic for incoming actions
+            _brokerAddress = mqttOptions.BrokerAddress;
+            _port = mqttOptions.Port;
             _mqttQoS = (MqttQualityOfServiceLevel)Enum.ToObject(typeof(MqttQualityOfServiceLevel), mqttOptions.QoS);
 
-            _logger.LogInformation("ActionProvider initialized with TriggerTopic: {TriggerTopic} and QoS: {QoS}",
-                _triggerTopic, _mqttQoS);
+            _logger.LogInformation("ActionProvider initialized with BrokerAddress: {BrokerAddress}, Port: {Port}, TriggerTopic: {TriggerTopic}, ActionTopic: {ActionTopic}, and QoS: {QoS}",
+                _brokerAddress, _port, _triggerTopic, _actionTopic, _mqttQoS);
         }
 
         protected override async Task OnStartAsync()
+{
+    await base.OnStartAsync();
+    await RetryWithBackoffAsync(ConnectAndSubscribeAsync, _cancellationTokenSource.Token);
+
+    // Unified handler for both ServerActionMessage and ServerActionAppTriggerMessage
+    HandleMessage<ServerActionMessage>(message =>
+    {
+        // Log detailed information about the action trigger
+        _logger.LogInformation("Received ServerActionMessage Trigger:");
+        _logger.LogInformation("  ContextKey: {ContextKey}", message.ContextKey);
+        _logger.LogInformation("  Layer: {Layer}", message.Layer);
+        _logger.LogInformation("  Value: {Value}", message.Value);
+        _logger.LogInformation("  Role: {Role}", message.Role);
+        _logger.LogInformation("  SenderId: {SenderId}", message.SenderId);
+        _logger.LogInformation("  ScenarioRole: {ScenarioRole}", message.ScenarioRole);
+        _logger.LogInformation("  SessionId: {SessionId}", message.SessionId);
+        
+        if (message.Arguments != null && message.Arguments.Length > 0)
         {
-            await base.OnStartAsync();
-            await RetryWithBackoffAsync(ConnectAndSubscribeAsync, _cancellationTokenSource.Token);
+            foreach (var argument in message.Arguments)
+            {
+                _logger.LogInformation("  Argument - Name: {ArgumentName}, Value: {ArgumentValue}", argument.Name, argument.Value);
+            }
+        }
+        else
+        {
+            _logger.LogInformation("  Arguments: None");
         }
 
-        // Retry logic with exponential backoff for MQTT connection
+        // Check if this is an event
+        if (message.Role == Voxta.Model.Shared.ChatMessageRole.Event)
+        {
+            _logger.LogInformation("Event detected: {EventName}", message.Value);
+            // Handle event-specific logic here
+        }
+        else
+        {
+            // Default handling for action messages
+            _logger.LogInformation("Sending action trigger to MQTT broker");
+            SendMqttMessage(message.Value);
+        }
+    });
+
+    // Handle ServerActionAppTriggerMessage
+    HandleMessage<ServerActionAppTriggerMessage>(message =>
+    {
+        // Log detailed information about the app trigger message
+        _logger.LogInformation("Received ServerActionAppTriggerMessage Trigger:");
+        _logger.LogInformation("  Name: {Name}", message.Name);
+        _logger.LogInformation("  SenderId: {SenderId}", message.SenderId);
+        _logger.LogInformation("  ScenarioRole: {ScenarioRole}", message.ScenarioRole);
+        _logger.LogInformation("  SessionId: {SessionId}", message.SessionId);
+
+        if (message.Arguments != null && message.Arguments.Length > 0)
+        {
+            for (int i = 0; i < message.Arguments.Length; i++)
+            {
+                _logger.LogInformation("  Argument {Index}: {ArgumentValue}", i, message.Arguments[i]);
+            }
+        }
+        else
+        {
+            _logger.LogInformation("  Arguments: None");
+        }
+
+        // Always send AppTriggers from chat to MQTT
+        _logger.LogInformation("Sending AppTrigger to MQTT broker");
+        SendMqttMessage(message.Name);
+    });
+}
+
+        private void LogServerActionAppTriggerMessage(ServerActionAppTriggerMessage message)
+        {
+            _logger.LogInformation("Received ServerActionAppTriggerMessage:");
+            _logger.LogInformation("  Name: {Name}", message.Name);
+            _logger.LogInformation("  SenderId: {SenderId}", message.SenderId);
+            _logger.LogInformation("  ScenarioRole: {ScenarioRole}", message.ScenarioRole);
+            _logger.LogInformation("  SessionId: {SessionId}", message.SessionId);
+
+            if (message.Arguments != null && message.Arguments.Length > 0)
+            {
+                for (int i = 0; i < message.Arguments.Length; i++)
+                {
+                    var argument = message.Arguments[i];
+                    _logger.LogInformation("  Argument[{Index}]: {Argument}", i, argument);
+                }
+            }
+            else
+            {
+                _logger.LogInformation("  Arguments: None");
+            }
+        }
+
+
         private async Task RetryWithBackoffAsync(Func<Task> action, CancellationToken cancellationToken)
         {
             const int maxRetries = 5;
@@ -72,10 +165,9 @@ namespace Voxta.SampleProviderApp.Providers
                     if (++retryCount > maxRetries)
                     {
                         _logger.LogCritical("Maximum retry attempts reached. Shutting down connection.");
-                        throw;  // Exit if retries exceed max limit
+                        throw;
                     }
 
-                    // Exponential backoff logic
                     int delay = Math.Min(initialDelaySeconds * (int)Math.Pow(2, retryCount), maxDelaySeconds);
                     _logger.LogWarning($"Retrying MQTT connection in {delay} seconds (attempt {retryCount}/{maxRetries})...");
                     await Task.Delay(TimeSpan.FromSeconds(delay), cancellationToken);
@@ -83,48 +175,148 @@ namespace Voxta.SampleProviderApp.Providers
             }
         }
 
-        // Connecting and subscribing to MQTT topics
         private async Task ConnectAndSubscribeAsync()
         {
             var options = new MqttClientOptionsBuilder()
-                .WithTcpServer("127.0.0.1", 1883)
+                .WithTcpServer(_brokerAddress, _port)
                 .WithCleanSession()
                 .Build();
 
-            _logger.LogInformation("Attempting to connect to MQTT broker at 127.0.0.1:1883");
+            _logger.LogInformation("Connecting to MQTT broker at {BrokerAddress}:{Port}", _brokerAddress, _port);
             await _mqttClient.ConnectAsync(options, _cancellationTokenSource.Token);
             _logger.LogInformation("Connected to MQTT broker.");
 
-            // Subscribe to the trigger topic
-            await _mqttClient.SubscribeAsync(_triggerTopic, _mqttQoS);
-            _logger.LogInformation("Subscribed to MQTT topic: {TriggerTopic}", _triggerTopic);
+            // Subscribe to the action topic for incoming actions
+            await _mqttClient.SubscribeAsync(_actionTopic, _mqttQoS);
+            _logger.LogInformation("Subscribed to MQTT topic: {ActionTopic}", _actionTopic);
 
-            // Handle chat triggers and relay them to MQTT
-            HandleMessage<ServerActionAppTriggerMessage>(message =>
+            _mqttClient.ApplicationMessageReceivedAsync += OnMqttMessageReceivedAsync;
+        }
+        private async Task OnMqttMessageReceivedAsync(MqttApplicationMessageReceivedEventArgs e)
+        {
+            var topic = e.ApplicationMessage.Topic;
+            var payload = System.Text.Encoding.UTF8.GetString(e.ApplicationMessage.Payload);
+
+            _logger.LogInformation("Received MQTT message on topic {Topic} with payload: {Payload}", topic, payload);
+
+            try
             {
-                _logger.LogInformation("Received trigger {TriggerName} from chat", message.Name);
+                var actionMessage = JsonSerializer.Deserialize<ActionMessage>(
+                    payload,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-                // Check if the trigger name has already been processed
-                // if (_processedMessages.ContainsKey(message.Name))
-                // {
-                //     _logger.LogWarning("Trigger {TriggerName} has already been processed. Ignoring duplicate.", message.Name);
-                //     return; // Ignore duplicate triggers
-                // }
+                if (actionMessage == null || string.IsNullOrEmpty(actionMessage.Action))
+                {
+                    _logger.LogWarning("Invalid action message received: {Payload}", payload);
+                    return;
+                }
 
-                // Add the trigger name to the processed messages
-                // _processedMessages.TryAdd(message.Name, true);
+                // If action is "remove", remove without mapping timing
+                if (actionMessage.Action == "remove")
+                {
+                    RemoveAction(actionMessage.Name);
+                }
+                // If action is "add", proceed with mapping timing and adding
+                else if (actionMessage.Action == "add")
+                {
+                    if (string.IsNullOrEmpty(actionMessage.Timing))
+                    {
+                        _logger.LogWarning("Missing Timing value for add action: {ActionName}", actionMessage.Name);
+                        return;
+                    }
 
-
-                // Log and process the trigger
-                _logger.LogInformation("Processing trigger {TriggerName} for MQTT sending.", message.Name);
-
-                // Send corresponding MQTT message with the trigger name as the payload
-                SendMqttMessage(message.Name).Wait();
-            });
+                    var timing = MapTiming(actionMessage.Timing);
+                    AddAction(actionMessage, timing);
+                }
+                else
+                {
+                    _logger.LogWarning("Unknown action type: {Action}", actionMessage.Action);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to process MQTT message payload: {Payload}", payload);
+            }
         }
 
-        // Method to send MQTT message
-        private async Task SendMqttMessage(string action)
+
+        private void AddAction(ActionMessage actionMessage, FunctionTiming timing)
+        {
+            if (string.IsNullOrEmpty(actionMessage.Name))
+            {
+                _logger.LogWarning("Action name is required for adding an action.");
+                return;
+            }
+
+            var actionDefinition = new FunctionDefinition
+            {
+                Name = actionMessage.Name,
+                Description = actionMessage.Description,
+                Timing = timing,
+                Layer = actionMessage.Layer ?? "default",
+                Effect = new ActionEffect
+                {
+                    Secret = actionMessage.Secret,
+                    Note = actionMessage.Note,
+                    SetFlags = actionMessage.SetFlags
+                }
+            };
+
+            if (_registeredActions.TryAdd(actionMessage.Name, actionDefinition))
+            {
+                _logger.LogInformation("Added action: {ActionName}", actionMessage.Name);
+
+                // Register the action with Voxta's inference system
+                Send(new ClientUpdateContextMessage
+                {
+                    SessionId = SessionId,
+                    ContextKey = "Actions",
+                    Actions = _registeredActions.Values.ToArray() // Update all actions
+                });
+            }
+            else
+            {
+                _logger.LogWarning("Action already exists: {ActionName}", actionMessage.Name);
+            }
+        }
+
+        private void RemoveAction(string actionName)
+        {
+            if (string.IsNullOrEmpty(actionName))
+            {
+                _logger.LogWarning("Action name is required for removing an action.");
+                return;
+            }
+
+            if (_registeredActions.TryRemove(actionName, out _))
+            {
+                _logger.LogInformation("Removed action: {ActionName}", actionName);
+
+                // After removing the action, send an updated context message
+                UpdateChatContext();
+            }
+            else
+            {
+                _logger.LogWarning("Action does not exist: {ActionName}", actionName);
+            }
+        }
+
+        private void UpdateChatContext()
+        {
+            // Send updated list of registered actions to Voxta's inference system
+            var contextMessage = new ClientUpdateContextMessage
+            {
+                SessionId = SessionId,
+                ContextKey = "Actions",
+                Actions = _registeredActions.Values.ToArray() // Update all actions
+            };
+
+            Send(contextMessage);
+            _logger.LogInformation("Updated Voxta chat context after action change. Total actions: {ActionCount}", _registeredActions.Count);
+        }
+
+
+        private void SendMqttMessage(string messageName)
         {
             if (_mqttClient == null || !_mqttClient.IsConnected)
             {
@@ -132,33 +324,36 @@ namespace Voxta.SampleProviderApp.Providers
                 return;
             }
 
-            // Convert the action name to MQTT payload
-            var payload = System.Text.Encoding.UTF8.GetBytes(action);
+            // Sending the trigger as a simple string rather than JSON
+            var payload = System.Text.Encoding.UTF8.GetBytes(messageName);
             var mqttMessage = new MqttApplicationMessageBuilder()
-                .WithTopic(_mqttInputTopic)
+                .WithTopic(_triggerTopic) // Using the correct topic for triggers
                 .WithPayload(payload)
                 .WithQualityOfServiceLevel(_mqttQoS)
                 .Build();
 
-            // Log before sending the message
-            _logger.LogInformation("Sending MQTT message with action {Action} to topic {Topic}", action, _mqttInputTopic);
+            _mqttClient.PublishAsync(mqttMessage).Wait();
 
-            // Publish the MQTT message
-            await _mqttClient.PublishAsync(mqttMessage, _cancellationTokenSource.Token);
-
-            // Log after successfully sending the message
-            _logger.LogInformation("Successfully sent MQTT message with action {Action} to topic {Topic}", action, _mqttInputTopic);
+            _logger.LogInformation("Successfully sent MQTT message: {MessageName} to topic: {Topic}", messageName, _triggerTopic);
         }
 
-        // Graceful shutdown of MQTT and resource disposal
+        private FunctionTiming MapTiming(string timing) => timing switch
+        {
+            "AfterUserMessage" => FunctionTiming.AfterUserMessage,
+            "BeforeAssistantMessage" => FunctionTiming.BeforeAssistantMessage,
+            "AfterAssistantMessage" => FunctionTiming.AfterAssistantMessage,
+            "Manual" => FunctionTiming.Manual,
+            "Button" => FunctionTiming.Button,
+            _ => throw new ArgumentException($"Unknown Timing value: {timing}")
+        };
+
         public async ValueTask DisposeAsync()
         {
             if (_disposed)
                 return;
 
             _logger.LogInformation("Disposing ActionProvider...");
-
-            _cancellationTokenSource.Cancel();  // Trigger cancellation of tasks
+            _cancellationTokenSource.Cancel();
 
             if (_mqttClient.IsConnected)
             {
@@ -169,8 +364,6 @@ namespace Voxta.SampleProviderApp.Providers
             _mqttClient.Dispose();
             _cancellationTokenSource.Dispose();
             _disposed = true;
-
-            _logger.LogInformation("Resources disposed successfully.");
         }
 
         public class ActionMqttOptions
@@ -178,7 +371,21 @@ namespace Voxta.SampleProviderApp.Providers
             public string BrokerAddress { get; set; }
             public int Port { get; set; }
             public string TriggerTopic { get; set; }
+            public string ActionTopic { get; set; }
             public int QoS { get; set; }
+        }
+
+        public class ActionMessage
+        {
+            public string Action { get; set; }
+            public string Name { get; set; }
+            public string Description { get; set; }
+            public string Timing { get; set; }
+            public string Layer { get; set; } = "default";
+            public string[] SetFlags { get; set; }
+            public string Secret { get; set; }
+            public string Note { get; set; }
+            public bool CancelReply { get; set; }
         }
     }
 }
