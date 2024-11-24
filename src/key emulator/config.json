@@ -1,0 +1,10 @@
+{
+    "mqtt": {
+        "broker": "localhost",
+        "port": 1883,
+        "input_topic": "/noxyred/keys",
+        "output_topic": "/noxyred/output",
+        "sound_topic": "/noxyred/sound",
+        "qos": 2
+    }
+}
