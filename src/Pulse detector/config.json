@@ -1,0 +1,7 @@
+{
+    "mqtt_broker": "localhost",
+    "mqtt_port": 1883,
+    "mqtt_topic": "/sensor/heartrate",
+    "service_uuid": "0000180D-0000-1000-8000-00805F9B34FB",
+    "characteristic_uuid": "00002A37-0000-1000-8000-00805F9B34FB"
+}
