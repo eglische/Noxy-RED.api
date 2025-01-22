@@ -50,76 +50,76 @@ namespace Voxta.SampleProviderApp.Providers
         }
 
         protected override async Task OnStartAsync()
-{
-    await base.OnStartAsync();
-    await RetryWithBackoffAsync(ConnectAndSubscribeAsync, _cancellationTokenSource.Token);
-
-    // Unified handler for both ServerActionMessage and ServerActionAppTriggerMessage
-    HandleMessage<ServerActionMessage>(message =>
-    {
-        // Log detailed information about the action trigger
-        _logger.LogInformation("Received ServerActionMessage Trigger:");
-        _logger.LogInformation("  ContextKey: {ContextKey}", message.ContextKey);
-        _logger.LogInformation("  Layer: {Layer}", message.Layer);
-        _logger.LogInformation("  Value: {Value}", message.Value);
-        _logger.LogInformation("  Role: {Role}", message.Role);
-        _logger.LogInformation("  SenderId: {SenderId}", message.SenderId);
-        _logger.LogInformation("  ScenarioRole: {ScenarioRole}", message.ScenarioRole);
-        _logger.LogInformation("  SessionId: {SessionId}", message.SessionId);
-        
-        if (message.Arguments != null && message.Arguments.Length > 0)
         {
-            foreach (var argument in message.Arguments)
+            await base.OnStartAsync();
+            await RetryWithBackoffAsync(ConnectAndSubscribeAsync, _cancellationTokenSource.Token);
+
+            // Unified handler for both ServerActionMessage and ServerActionAppTriggerMessage
+            HandleMessage<ServerActionMessage>(message =>
             {
-                _logger.LogInformation("  Argument - Name: {ArgumentName}, Value: {ArgumentValue}", argument.Name, argument.Value);
-            }
-        }
-        else
-        {
-            _logger.LogInformation("  Arguments: None");
-        }
+                // Log detailed information about the action trigger
+                _logger.LogInformation("Received ServerActionMessage Trigger:");
+                _logger.LogInformation("  ContextKey: {ContextKey}", message.ContextKey);
+                _logger.LogInformation("  Layer: {Layer}", message.Layer);
+                _logger.LogInformation("  Value: {Value}", message.Value);
+                _logger.LogInformation("  Role: {Role}", message.Role);
+                _logger.LogInformation("  SenderId: {SenderId}", message.SenderId);
+                _logger.LogInformation("  ScenarioRole: {ScenarioRole}", message.ScenarioRole);
+                _logger.LogInformation("  SessionId: {SessionId}", message.SessionId);
 
-        // Check if this is an event
-        if (message.Role == Voxta.Model.Shared.ChatMessageRole.Event)
-        {
-            _logger.LogInformation("Event detected: {EventName}", message.Value);
-            // Handle event-specific logic here
-        }
-        else
-        {
-            // Default handling for action messages
-            _logger.LogInformation("Sending action trigger to MQTT broker");
-            SendMqttMessage(message.Value);
-        }
-    });
+                if (message.Arguments != null && message.Arguments.Length > 0)
+                {
+                    foreach (var argument in message.Arguments)
+                    {
+                        _logger.LogInformation("  Argument - Name: {ArgumentName}, Value: {ArgumentValue}", argument.Name, argument.Value);
+                    }
+                }
+                else
+                {
+                    _logger.LogInformation("  Arguments: None");
+                }
 
-    // Handle ServerActionAppTriggerMessage
-    HandleMessage<ServerActionAppTriggerMessage>(message =>
-    {
-        // Log detailed information about the app trigger message
-        _logger.LogInformation("Received ServerActionAppTriggerMessage Trigger:");
-        _logger.LogInformation("  Name: {Name}", message.Name);
-        _logger.LogInformation("  SenderId: {SenderId}", message.SenderId);
-        _logger.LogInformation("  ScenarioRole: {ScenarioRole}", message.ScenarioRole);
-        _logger.LogInformation("  SessionId: {SessionId}", message.SessionId);
+                // Check if this is an event
+                if (message.Role == Voxta.Model.Shared.ChatMessageRole.Event)
+                {
+                    _logger.LogInformation("Event detected: {EventName}", message.Value);
+                    // Handle event-specific logic here
+                }
+                else
+                {
+                    // Default handling for action messages
+                    _logger.LogInformation("Sending action trigger to MQTT broker");
+                    SendMqttMessage(message.Value);
+                }
+            });
 
-        if (message.Arguments != null && message.Arguments.Length > 0)
-        {
-            for (int i = 0; i < message.Arguments.Length; i++)
+            // Handle ServerActionAppTriggerMessage
+            HandleMessage<ServerActionAppTriggerMessage>(message =>
             {
-                _logger.LogInformation("  Argument {Index}: {ArgumentValue}", i, message.Arguments[i]);
-            }
-        }
-        else
-        {
-            _logger.LogInformation("  Arguments: None");
-        }
+                // Log detailed information about the app trigger message
+                _logger.LogInformation("Received ServerActionAppTriggerMessage Trigger:");
+                _logger.LogInformation("  Name: {Name}", message.Name);
+                _logger.LogInformation("  SenderId: {SenderId}", message.SenderId);
+                _logger.LogInformation("  ScenarioRole: {ScenarioRole}", message.ScenarioRole);
+                _logger.LogInformation("  SessionId: {SessionId}", message.SessionId);
 
-        // Always send AppTriggers from chat to MQTT
-        _logger.LogInformation("Sending AppTrigger to MQTT broker");
-        SendMqttMessage(message.Name);
-    });
-}
+                if (message.Arguments != null && message.Arguments.Length > 0)
+                {
+                    for (int i = 0; i < message.Arguments.Length; i++)
+                    {
+                        _logger.LogInformation("  Argument {Index}: {ArgumentValue}", i, message.Arguments[i]);
+                    }
+                }
+                else
+                {
+                    _logger.LogInformation("  Arguments: None");
+                }
+
+                // Always send AppTriggers from chat to MQTT
+                _logger.LogInformation("Sending AppTrigger to MQTT broker");
+                SendMqttMessage(message.Name);
+            });
+        }
 
         private void LogServerActionAppTriggerMessage(ServerActionAppTriggerMessage message)
         {
@@ -248,7 +248,7 @@ namespace Voxta.SampleProviderApp.Providers
                 return;
             }
 
-            var actionDefinition = new FunctionDefinition
+            var actionDefinition = new ScenarioActionDefinition
             {
                 Name = actionMessage.Name,
                 Description = actionMessage.Description,
@@ -271,8 +271,15 @@ namespace Voxta.SampleProviderApp.Providers
                 {
                     SessionId = SessionId,
                     ContextKey = "Actions",
-                    Actions = _registeredActions.Values.ToArray() // Update all actions
+                    Actions = _registeredActions.Values.Select(action => new ScenarioActionDefinition
+                    {
+                        Name = action.Name,
+                        Description = action.Description,
+                        Timing = action.Timing,
+                        // Map other properties accordingly
+                    }).ToArray() // Explicit conversion
                 });
+
             }
             else
             {
@@ -308,7 +315,14 @@ namespace Voxta.SampleProviderApp.Providers
             {
                 SessionId = SessionId,
                 ContextKey = "Actions",
-                Actions = _registeredActions.Values.ToArray() // Update all actions
+                Actions = _registeredActions.Values.Select(action => new ScenarioActionDefinition
+                {
+                    Name = action.Name,
+                    Description = action.Description,
+                    Timing = action.Timing,
+                    // Add necessary property mappings from FunctionDefinition to ScenarioActionDefinition
+                }).ToArray()
+
             };
 
             Send(contextMessage);
