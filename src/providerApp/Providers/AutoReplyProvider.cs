@@ -10,22 +10,19 @@ using Voxta.Providers.Host;
 
 namespace Voxta.SampleProviderApp.Providers
 {
-    // Configuration options specific to AutoReply
     public class AutoReplyProviderOptions
     {
-        public int AutoReplyDelay { get; set; } = 0; // Default to off
-        public string AutoReplyTopic { get; set; } = "/noxyred/autoreply"; // New topic for auto-reply control
+        public int AutoReplyDelay { get; set; } = 0;
+        public string AutoReplyTopic { get; set; } = "/noxyred/autoreply";
     }
 
-    // Configuration options for MQTT
     public class MqttOptions
     {
-        public string BrokerAddress { get; set; } = "127.0.0.1"; // Default broker address
-        public int Port { get; set; } = 1883; // Default port
-        public int QoS { get; set; } = 2; // Default QoS level
+        public string BrokerAddress { get; set; } = "127.0.0.1";
+        public int Port { get; set; } = 1883;
+        public int QoS { get; set; } = 2;
     }
 
-    // The main provider class for auto-reply functionality with MQTT integration
     public class AutoReplyProvider : ProviderBase
     {
         private readonly ILogger<AutoReplyProvider> _logger;
@@ -43,26 +40,21 @@ namespace Voxta.SampleProviderApp.Providers
         {
             _logger = logger;
 
-            // Load AutoReplyProviderOptions directly from configuration
             var autoReplyOptions = new AutoReplyProviderOptions();
             configuration.GetSection("Noxy-RED.api").Bind(autoReplyOptions);
 
-            // Load MqttOptions directly from configuration
             var mqttOptions = new MqttOptions();
             configuration.GetSection("MQTT").Bind(mqttOptions);
 
             _currentAutoReplyDelay = autoReplyOptions.AutoReplyDelay;
             _autoReplyEnabled = _currentAutoReplyDelay > 0;
 
-            // Initialize MQTT client
             var mqttFactory = new MqttFactory();
             _mqttClient = mqttFactory.CreateMqttClient();
             _mqttQoS = (MqttQualityOfServiceLevel)Enum.ToObject(typeof(MqttQualityOfServiceLevel), mqttOptions.QoS);
 
-            // Configure MQTT message handling
             _mqttClient.ApplicationMessageReceivedAsync += OnMqttMessageReceivedAsync;
 
-            // Connect and subscribe to MQTT topic
             StartMqttClient(mqttOptions, autoReplyOptions.AutoReplyTopic);
         }
 
@@ -82,7 +74,6 @@ namespace Voxta.SampleProviderApp.Providers
                 await _mqttClient.SubscribeAsync(autoReplyTopic, _mqttQoS);
                 _logger.LogInformation("Successfully subscribed to MQTT topic: {Topic}", autoReplyTopic);
 
-                // Configure auto-reply if enabled
                 if (_autoReplyEnabled)
                 {
                     ConfigureAutoReply(TimeSpan.FromMilliseconds(_currentAutoReplyDelay), OnAutoReply);
@@ -122,6 +113,18 @@ namespace Voxta.SampleProviderApp.Providers
                     _autoReplyEnabled = false;
                     _logger.LogInformation("Auto-reply has been disabled via MQTT.");
                 }
+            }
+            else if (payload.Equals("interrupt", StringComparison.OrdinalIgnoreCase))
+            {
+                Send(new ClientInterruptMessage { SessionId = SessionId });
+                _logger.LogInformation("ClientInterruptMessage sent to cancel TTS speech output.");
+
+                Send(new ClientSendMessage
+                {
+                    SessionId = SessionId,
+                    Text = "/secret An automated interrupt has occurred and is part of the scenario. Keep the story going and ignore it happened."
+                });
+                _logger.LogInformation("Secret message sent to chat after interrupt.");
             }
             else if (payload.ToLower() == "off" || payload == "0")
             {
